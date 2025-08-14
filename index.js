@@ -30,6 +30,15 @@ async function connectDbAndCreateTable() {
         console.log('Table "portfolio_views" ensured to exists');
 
         await pool.query(`
+            CREATE TABLE IF NOT EXISTS tab_visits (
+                id SERIAL PRIMARY KEY,
+                tab_name VARCHAR(255) UNIQUE NOT NULL,
+                visit_count INT DEFAULT 0
+            );
+        `)
+        console.log('Table tab visits ensured to exist');
+
+        await pool.query(`
             CREATE TABLE IF NOT EXISTS project_clicks (
                 id SERIAL PRIMARY KEY,
                 project_name VARCHAR(255) UNIQUE NOT NULL,
@@ -93,6 +102,38 @@ app.get('/api/views', async (req, res) => {
     } catch (error) {
         console.error('Error fetching portfolio view count:', error);
         res.status(500).json({ success: false, message: 'Server error fetching view count' })
+    }
+});
+
+app.post('/api/tabs/increment/:tabName', async (req, res)=>{
+    const {tabName} = req.params;
+
+    try{
+        const result = await pool.query(`
+            INSERT INTO tab_visits (tab_name, visit_count)
+            VALUES ($1, 1)
+            ON CONFLICT (tab_name) DO UPDATE
+            SET visit_count = tab_visits.visit_count + 1
+            RETURNING visit_count;    
+        `, [tabName]);
+
+        const currentCount = result.rows[0].visit_count;
+        res.status(200).json({success: true, tabName, visitCount: currentCount});
+    }catch(error){
+        console.error(`Error incrementingtab visit count for ${tabName}:`, error)
+        res.status(500).json({success: false, message: `Server error incrementing visit count for ${tabName}`});
+    }
+});
+
+app.get('/api/tabs/visits', async (req, res)=>{
+    try{
+        const result = await pool.query(`
+            SELECT tab_name, visit_count FROM tab_visits ORDER BY visit_count DESC;
+        `);
+        res.status(200).json({success: true, tabVisits: result.rows});
+    }catch(error){
+        console.error('Error fetching tab visit counts:', error);
+        res.status(500).json({success: false, message: 'Server error fetching tab counts'});
     }
 });
 
