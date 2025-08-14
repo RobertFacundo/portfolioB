@@ -184,7 +184,7 @@ app.get('/api/projects/clicks', async (req, res) => {
 app.post('/api/views/logs', async (req, res)=>{
     try{
         await pool.query(`
-            INSERT INTO portfolio_visits_logs (visited_at)
+            INSERT INTO portfolio_visit_logs (visited_at)
             VALUES (CURRENT_TIMESTAMP);    
         `);
         res.status(200).json({success: true, message: 'Visit logged successfully'});
