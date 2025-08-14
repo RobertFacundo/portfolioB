@@ -39,6 +39,14 @@ async function connectDbAndCreateTable() {
         console.log('Table tab visits ensured to exist');
 
         await pool.query(`
+            CREATE TABLE IF NOT EXISTS portfolio_visit_logs (
+                id SERIAL PRIMARY KEY,
+                visited_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+        `);
+        console.log('Table "portfolio_visit_logs" ensured to exist.');
+
+        await pool.query(`
             CREATE TABLE IF NOT EXISTS project_clicks (
                 id SERIAL PRIMARY KEY,
                 project_name VARCHAR(255) UNIQUE NOT NULL,
@@ -172,6 +180,19 @@ app.get('/api/projects/clicks', async (req, res) => {
         res.status(500).json({ success: false, message: 'Server error fetching click counts' });
     }
 });
+
+app.post('/api/views/logs', async (req, res)=>{
+    try{
+        await pool.query(`
+            INSERT INTO portfolio_visits_logs (visited_at)
+            VALUES (CURRENT_TIMESTAMP);    
+        `);
+        res.status(200).json({success: true, message: 'Visit logged successfully'});
+    }catch(error){
+        console.error('Error loggin portfolio visit:', error);
+        res.status(500).json({success: false, message: 'Server error logging'})
+    }
+})
 
 app.listen(PORT, () => {
     console.log(`Backend server listeningon port ${PORT}`)
